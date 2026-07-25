@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paco-ginger: #d9782d;
+  --color-paco-ginger-dark: #b8601e;
+  --color-paco-ginger-light: #f0a85c;
+  --color-paco-cream: #fbe8cf;
+  --color-paco-eye: #6fc3e0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #000;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes paco-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.paco-eyes {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: paco-blink 6.5s ease-in-out infinite;
+}
+
+@keyframes bubble-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.bubble-bob {
+  animation: bubble-bob 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paco-eyes {
+    animation: none;
+  }
+  .bubble-bob {
+    animation: none;
+  }
+}
