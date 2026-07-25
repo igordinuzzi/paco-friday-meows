@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useWalkAnimation } from "@/hooks/useWalkAnimation";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
+import { useAppReady } from "@/hooks/useAppReady";
 import { playMeow } from "@/lib/sound";
 import { useConfetti, ConfettiLayer } from "./Confetti";
+import LoadingScreen from "./LoadingScreen";
 import PacoCat from "./PacoCat";
 
 export default function PacoScene() {
@@ -12,12 +15,19 @@ export default function PacoScene() {
   const { state, react } = useWalkAnimation(reducedMotion);
   const { isPlaying, toggle: toggleMusic } = useBackgroundMusic();
   const { bursts, burst } = useConfetti();
+  const { progress, ready } = useAppReady(reducedMotion);
+  const [meowCount, setMeowCount] = useState(0);
 
   const handleMeow = () => {
     react();
     playMeow();
+    setMeowCount((c) => c + 1);
     if (!reducedMotion) burst();
   };
+
+  const titleReveal = reducedMotion
+    ? `transition-opacity duration-300 ${ready ? "opacity-100" : "opacity-0"}`
+    : `transition-all duration-700 ease-out ${ready ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`;
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-black">
@@ -42,9 +52,20 @@ export default function PacoScene() {
         )}
       </button>
 
+      {meowCount > 0 && (
+        <div
+          className="absolute left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-20 -translate-x-1/2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80 backdrop-blur-sm"
+          role="status"
+        >
+          <span key={meowCount} className={reducedMotion ? "" : "meow-bump inline-block"}>
+            🐾 {meowCount} {meowCount === 1 ? "meow" : "meows"}
+          </span>
+        </div>
+      )}
+
       <h1
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 flex select-none flex-col items-center justify-center px-2 text-center leading-[0.8] tracking-tight"
+        className={`pointer-events-none absolute inset-0 z-0 flex select-none flex-col items-center justify-center px-2 text-center leading-[0.8] tracking-tight ${titleReveal}`}
       >
         <span
           className="text-paco-ginger"
@@ -79,13 +100,13 @@ export default function PacoScene() {
         }}
       />
 
+      <ConfettiLayer bursts={bursts} originXPercent={state.x} />
+
       <div className="absolute inset-x-0 bottom-0 z-10 h-[26vh] min-h-[150px]">
         <div
           className="absolute bottom-6 flex flex-col items-center"
           style={{ left: `${state.x}%`, transform: "translateX(-50%)" }}
         >
-          <ConfettiLayer bursts={bursts} />
-
           <button
             type="button"
             onClick={handleMeow}
@@ -121,6 +142,8 @@ export default function PacoScene() {
           </button>
         </div>
       </div>
+
+      <LoadingScreen progress={progress} visible={!ready} />
     </main>
   );
 }
