@@ -22,8 +22,8 @@ export default function PacoScene() {
   const [meowCount, setMeowCount] = useState(0);
 
   const { lines: titleLines, activeLine } = useTypewriter(TITLE_LINES, ready, {
-    charDelay: reducedMotion ? 0 : 55,
-    lineGap: reducedMotion ? 0 : 250,
+    charDelay: reducedMotion ? 0 : 110,
+    lineGap: reducedMotion ? 0 : 450,
   });
 
   const handleMeow = () => {
