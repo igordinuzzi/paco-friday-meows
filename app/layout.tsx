@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Caveat } from "next/font/google";
 import "./globals.css";
+
+const caveat = Caveat({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-handwritten",
+});
 
 export const metadata: Metadata = {
   title: "Paco's Friday Meows",
@@ -21,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="h-dvh w-full overflow-hidden bg-black antialiased">
+      <body className={`${caveat.variable} h-dvh w-full overflow-hidden bg-black antialiased`}>
         {children}
       </body>
     </html>

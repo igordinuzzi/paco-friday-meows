@@ -2,11 +2,16 @@ import { useEffect, useReducer, useRef } from "react";
 
 export type WalkPhase = "walking" | "pausing" | "reacting" | "still";
 
+export interface LegPose {
+  hip: number;
+  knee: number;
+}
+
 export interface LegAngles {
-  frontLeft: number;
-  frontRight: number;
-  backLeft: number;
-  backRight: number;
+  frontLeft: LegPose;
+  frontRight: LegPose;
+  backLeft: LegPose;
+  backRight: LegPose;
 }
 
 export interface PacoAnimationState {
@@ -21,6 +26,7 @@ export interface PacoAnimationState {
   legs: LegAngles;
   tailAngle: number;
   bodyBob: number;
+  bodyTilt: number;
   headTilt: number;
   earAngle: number;
   mouthOpen: number;
@@ -31,14 +37,17 @@ const MAX_X = 90;
 
 const BASE_SPEED = 3.4; // percent of strip width per second
 const STEP_FREQ_SCALE = 0.11;
-const LEG_AMPLITUDE = 16; // degrees
+const LEG_AMPLITUDE = 16; // degrees, hip swing
+const KNEE_AMPLITUDE = 26; // degrees, extra bend while a leg is lifting
 const BOB_AMPLITUDE = 3; // px
+const TILT_AMPLITUDE = 2.5; // degrees, weight-shift sway
 
 const TAIL_BASE = 8; // degrees, resting curl
 const TAIL_AMPLITUDE = 13;
 const TAIL_FREQ = 0.9; // rad/s
 
 const EAR_BASE = -6; // degrees, resting slightly back (shy read)
+const EAR_WALK_BOB = 5; // degrees, ears flick along with each step
 
 const PAUSE_MIN = 1400;
 const PAUSE_MAX = 3200;
@@ -57,6 +66,35 @@ function lerp(from: number, to: number, t: number): number {
   return from + (to - from) * t;
 }
 
+function legPose(phase: number): LegPose {
+  return {
+    hip: LEG_AMPLITUDE * Math.sin(phase),
+    knee: KNEE_AMPLITUDE * Math.max(0, Math.sin(phase - Math.PI / 2)),
+  };
+}
+
+function neutralLegs(): LegAngles {
+  return {
+    frontLeft: { hip: 0, knee: 0 },
+    frontRight: { hip: 0, knee: 0 },
+    backLeft: { hip: 0, knee: 0 },
+    backRight: { hip: 0, knee: 0 },
+  };
+}
+
+function relaxLegs(legs: LegAngles, t: number): LegAngles {
+  const relax = (pose: LegPose): LegPose => ({
+    hip: lerp(pose.hip, 0, t),
+    knee: lerp(pose.knee, 0, t),
+  });
+  return {
+    frontLeft: relax(legs.frontLeft),
+    frontRight: relax(legs.frontRight),
+    backLeft: relax(legs.backLeft),
+    backRight: relax(legs.backRight),
+  };
+}
+
 function createInitialState(): PacoAnimationState {
   return {
     x: 50,
@@ -67,9 +105,10 @@ function createInitialState(): PacoAnimationState {
     phaseElapsed: 0,
     walkBudget: randomBetween(WALK_MIN, WALK_MAX),
     pauseRemaining: 0,
-    legs: { frontLeft: 0, frontRight: 0, backLeft: 0, backRight: 0 },
+    legs: neutralLegs(),
     tailAngle: TAIL_BASE,
     bodyBob: 0,
+    bodyTilt: 0,
     headTilt: 0,
     earAngle: EAR_BASE,
     mouthOpen: 0,
@@ -96,6 +135,7 @@ function reducer(state: PacoAnimationState, action: Action): PacoAnimationState 
     pauseRemaining,
     legs,
     bodyBob,
+    bodyTilt,
     headTilt,
     earAngle,
     mouthOpen,
@@ -136,24 +176,21 @@ function reducer(state: PacoAnimationState, action: Action): PacoAnimationState 
 
     x = nextX;
     legs = {
-      frontLeft: LEG_AMPLITUDE * Math.sin(stepPhase),
-      backRight: LEG_AMPLITUDE * Math.sin(stepPhase),
-      frontRight: LEG_AMPLITUDE * Math.sin(stepPhase + Math.PI),
-      backLeft: LEG_AMPLITUDE * Math.sin(stepPhase + Math.PI),
+      frontLeft: legPose(stepPhase),
+      backRight: legPose(stepPhase),
+      frontRight: legPose(stepPhase + Math.PI),
+      backLeft: legPose(stepPhase + Math.PI),
     };
     bodyBob = -Math.abs(Math.sin(stepPhase)) * BOB_AMPLITUDE;
+    bodyTilt = TILT_AMPLITUDE * Math.sin(stepPhase);
     headTilt = lerp(headTilt, 0, 0.12);
-    earAngle = lerp(earAngle, EAR_BASE, 0.12);
+    earAngle = lerp(earAngle, EAR_BASE + EAR_WALK_BOB * Math.sin(stepPhase), 0.2);
     mouthOpen = 0;
   } else if (phase === "pausing") {
     pauseRemaining -= dtMs;
-    legs = {
-      frontLeft: lerp(legs.frontLeft, 0, 0.15),
-      frontRight: lerp(legs.frontRight, 0, 0.15),
-      backLeft: lerp(legs.backLeft, 0, 0.15),
-      backRight: lerp(legs.backRight, 0, 0.15),
-    };
+    legs = relaxLegs(legs, 0.15);
     bodyBob = lerp(bodyBob, 0, 0.15);
+    bodyTilt = lerp(bodyTilt, 0, 0.15);
     headTilt = 6 * Math.sin((phaseElapsed / 1000) * 1.6);
     earAngle = lerp(earAngle, EAR_BASE, 0.1);
     mouthOpen = 0;
@@ -170,13 +207,9 @@ function reducer(state: PacoAnimationState, action: Action): PacoAnimationState 
     mouthOpen = bell;
     earAngle = EAR_BASE - 20 * bell;
     bodyBob = -5 * bell;
+    bodyTilt = lerp(bodyTilt, 0, 0.2);
     headTilt = -8 * Math.sin(Math.min(p * 1.4, 1) * Math.PI);
-    legs = {
-      frontLeft: lerp(legs.frontLeft, 0, 0.2),
-      frontRight: lerp(legs.frontRight, 0, 0.2),
-      backLeft: lerp(legs.backLeft, 0, 0.2),
-      backRight: lerp(legs.backRight, 0, 0.2),
-    };
+    legs = relaxLegs(legs, 0.2);
 
     if (phaseElapsed >= REACT_DURATION + RESUME_DELAY) {
       phase = reducedMotion ? "still" : "walking";
@@ -187,8 +220,9 @@ function reducer(state: PacoAnimationState, action: Action): PacoAnimationState 
       headTilt = 0;
     }
   } else {
-    legs = { frontLeft: 0, frontRight: 0, backLeft: 0, backRight: 0 };
+    legs = neutralLegs();
     bodyBob = 0;
+    bodyTilt = 0;
     headTilt = 0;
     earAngle = EAR_BASE;
     mouthOpen = 0;
@@ -211,6 +245,7 @@ function reducer(state: PacoAnimationState, action: Action): PacoAnimationState 
     legs,
     tailAngle,
     bodyBob,
+    bodyTilt,
     headTilt,
     earAngle,
     mouthOpen,
