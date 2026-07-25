@@ -5,10 +5,13 @@ import { useWalkAnimation } from "@/hooks/useWalkAnimation";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 import { useAppReady } from "@/hooks/useAppReady";
+import { useTypewriter } from "@/hooks/useTypewriter";
 import { playMeow } from "@/lib/sound";
 import { useConfetti, ConfettiLayer } from "./Confetti";
 import LoadingScreen from "./LoadingScreen";
 import PacoCat from "./PacoCat";
+
+const TITLE_LINES = ["Paco’s", "Friday Meows"];
 
 export default function PacoScene() {
   const reducedMotion = useReducedMotion();
@@ -17,6 +20,11 @@ export default function PacoScene() {
   const { bursts, burst } = useConfetti();
   const { progress, ready } = useAppReady(reducedMotion);
   const [meowCount, setMeowCount] = useState(0);
+
+  const { lines: titleLines, activeLine } = useTypewriter(TITLE_LINES, ready, {
+    charDelay: reducedMotion ? 0 : 55,
+    lineGap: reducedMotion ? 0 : 250,
+  });
 
   const handleMeow = () => {
     react();
@@ -71,13 +79,19 @@ export default function PacoScene() {
           className="text-paco-ginger"
           style={{ fontFamily: "var(--font-handwritten)", fontSize: "clamp(3.75rem, 19vw, 11.5rem)" }}
         >
-          Paco&rsquo;s
+          {titleLines[0]}
+          {activeLine === 0 && !reducedMotion && (
+            <span aria-hidden="true" className="typewriter-caret h-[0.8em] align-middle" />
+          )}
         </span>
         <span
           className="font-black uppercase text-neutral-400/60"
           style={{ fontSize: "clamp(2.75rem, 14vw, 8.5rem)" }}
         >
-          Friday Meows
+          {titleLines[1]}
+          {activeLine === 1 && !reducedMotion && (
+            <span aria-hidden="true" className="typewriter-caret h-[0.7em] align-middle" />
+          )}
         </span>
       </h1>
 

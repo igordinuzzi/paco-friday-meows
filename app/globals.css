@@ -106,6 +106,24 @@ body {
   animation: meow-bump 380ms ease-out;
 }
 
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.typewriter-caret {
+  display: inline-block;
+  width: 0.06em;
+  margin-left: 0.05em;
+  background: currentColor;
+  animation: caret-blink 900ms step-end infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .paco-eyes {
     animation: none;
@@ -117,6 +135,9 @@ body {
     animation: none;
   }
   .meow-bump {
+    animation: none;
+  }
+  .typewriter-caret {
     animation: none;
   }
 }
